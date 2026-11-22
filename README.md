@@ -33,6 +33,22 @@ interface's native 48 kHz, a listener couldn't tell them apart on an amp-modelle
 **Latency:** the converted device's buffers come out at 771 (playback) and 768 (capture) frames at 44.1 kHz, about 4 ms more in
 each direction than the Key 61's own audio.
 
+## Things to know
+
+- **MPC remembers the audio device you pick.** While the addin is installed, that's fine. If you uninstall it (or set
+  `enabled=0`) with the 48 kHz interface still selected, MPC shows its original sample-rate error at startup and falls back to its own
+  audio. Switch back to the MPC's own device in **Preferences > Audio** first, or just close the error and pick it there afterwards.
+- **Two error dialogs at startup with some USB interfaces connected.** On a Key 61 (MPC OS 3.10.1), with the Quad Cortex mini plugged
+  in, MPC shows two errors every time it starts. MPC opens its own audio device, then about a second later tries to open it again
+  while still holding it, and gets "device busy" twice (`Failed to open ALSA device for capture hw:1`). Close them and carry on; the
+  audio already running is unaffected. This happens without the addin too, and the addin doesn't fix it (yet).
+- **Other audio addins.** The addin only changes which device MPC's open returns, and passes every call on, so addins that hook the
+  same calls keep working. Addins that watch MPC's main audio stream (for example `mpc-addin-usb-audio`, which forwards it to a
+  computer over USB) will see the interface's stream once it is MPC's audio device, instead of the MPC's own.
+- **To undo:** `sh /data/mpc-addins/rate-bridge/uninstall.sh -y` over SSH (MPC restarts once), or `enabled=0` in
+  `rate_bridge.conf` and restart MPC. If MPC ever fails to start because of an addin, the recovery steps are in `docs/ADDINS.md` of
+  open-mpc/mpc-vst-plugins ("When an addin stops MPC from starting").
+
 ## Settings
 
 `rate_bridge.conf` in the addin's folder (`/data/mpc-addins/rate-bridge/`). MPC reads it when it opens an audio device.
