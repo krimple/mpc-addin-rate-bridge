@@ -51,6 +51,9 @@ Found on a Key 61 (MPC OS 3.10.1), 2026-11-22:
   mix, plugins, pads) goes out through the interface, and the MPC's own outputs and headphone jack go silent. Listen on the
   interface's outputs or headphones, and make sure it sends its USB playback channels (USB 1/2 carries MPC's main mix) to them. To
   keep listening on the MPC while recording the interface, use a plugin that captures it instead (e.g. MPC USB Bridge).
+- **The MPC's main volume knob does nothing while the interface is selected** (Key 61, seen 2026-11-22). The knob controls the
+  MPC's own audio hardware, which MPC no longer uses, and MPC deliberately ignores an external device's volume controls (it logs
+  `Ignoring non-boolean control PCM Playback Volume`). Set the listening level on the interface; MPC's master fader still works.
 - **MPC remembers the audio device you pick.** While the addin is installed, that's fine. If you uninstall it (or set
   `enabled=0`) with the 48 kHz interface still selected, MPC shows its original sample-rate error at startup and falls back to its own
   audio. Switch back to the MPC's own device in **Preferences > Audio** first, or just close the error and pick it there afterwards.
