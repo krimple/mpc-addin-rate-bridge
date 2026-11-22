@@ -15,8 +15,8 @@ to alsa-lib untouched.
 ## Status
 
 **Preview.** Tested offline, and on an MPC Key 61 (Gen1, MPC OS 3.10.1) with a Quad Cortex mini (2026-11-22): installed as an
-addin, MPC accepts the interface in Preferences (`Audio 44100Hz; 8-in; 8-out; 128sample buffer`), plays through it and shows its
-inputs on its meters. Not yet tried on other devices or interfaces, and no latency measurement yet.
+addin, MPC accepts the interface in Preferences (`Audio 44100Hz; 8-in; 8-out; 128sample buffer`), plays through it, and a guitar take
+recorded on an audio track (input 1/2) played back cleanly, with no audio errors in MPC's log. Not yet tried on other devices or interfaces, and no latency measurement yet.
 
 ## How it works
 
