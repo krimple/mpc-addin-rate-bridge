@@ -1,0 +1,8 @@
+Continuous Thing : USB Audio
+
+Playback:
+  Interface 1
+    Altset 1
+    Format: S16_LE
+    Channels: 2
+    Rates: 8000 - 96000 (continuous)

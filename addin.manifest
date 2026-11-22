@@ -1,0 +1,6 @@
+ADDIN_ID=rate-bridge
+ADDIN_NAME="MPC Rate Bridge"
+ADDIN_SO=librate_bridge.so
+ADDIN_CONF=rate_bridge.conf
+ADDIN_FILES=""
+ADDIN_DONE="Pick your 48 kHz USB interface in Preferences > Audio. Log: /data/mpc-addins/rate-bridge/rate_bridge.log"

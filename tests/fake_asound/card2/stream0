@@ -1,0 +1,29 @@
+Neural DSP Quad Cortex mini at usb-ff500000.usb-1.1, high speed : USB Audio
+
+Playback:
+  Status: Stop
+  Interface 1
+    Altset 1
+    Format: S32_LE
+    Channels: 8
+    Endpoint: 0x03 (3 OUT) (ASYNC)
+    Rates: 48000
+    Data packet interval: 125 us
+    Bits: 24
+    Channel map: FL FR FC LFE RL RR FLC FRC
+    Sync Endpoint: 0x82 (2 IN)
+    Sync EP Interface: 2
+    Sync EP Altset: 1
+    Implicit Feedback Mode: Yes
+
+Capture:
+  Status: Stop
+  Interface 2
+    Altset 1
+    Format: S32_LE
+    Channels: 8
+    Endpoint: 0x82 (2 IN) (ASYNC)
+    Rates: 48000
+    Data packet interval: 125 us
+    Bits: 24
+    Channel map: FL FR FC LFE RL RR FLC FRC

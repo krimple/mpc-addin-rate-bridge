@@ -1,0 +1,15 @@
+Some Interface : USB Audio
+
+Playback:
+  Interface 1
+    Altset 1
+    Format: S24_3LE
+    Channels: 2
+    Rates: 44100, 48000, 96000
+
+Capture:
+  Interface 2
+    Altset 1
+    Format: S24_3LE
+    Channels: 2
+    Rates: 44100, 48000, 96000
