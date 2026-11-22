@@ -35,6 +35,10 @@ each direction than the Key 61's own audio.
 
 ## Things to know
 
+- **The interface becomes MPC's only audio device, outputs included.** Once you pick it in Preferences, all of MPC's sound (the main
+  mix, plugins, pads) goes out through the interface, and the MPC's own outputs and headphone jack go silent. Listen on the
+  interface's outputs or headphones, and make sure it sends its USB playback channels (USB 1/2 carries MPC's main mix) to them. To
+  keep listening on the MPC while recording the interface, use a plugin that captures it instead (e.g. MPC USB Bridge).
 - **MPC remembers the audio device you pick.** While the addin is installed, that's fine. If you uninstall it (or set
   `enabled=0`) with the 48 kHz interface still selected, MPC shows its original sample-rate error at startup and falls back to its own
   audio. Switch back to the MPC's own device in **Preferences > Audio** first, or just close the error and pick it there afterwards.
