@@ -14,9 +14,9 @@ to alsa-lib untouched.
 
 ## Status
 
-**Preview.** It is tested offline, and on an MPC Key 61 (Gen1, MPC OS 3.10.1) with a Quad Cortex mini, where MPC's exact
-opening sequence was run against the interface with the addin loaded in a test program: 8 channels, both directions, no dropouts.
-Choosing the interface in MPC's own Preferences with the addin installed is the next test. Not yet tried on other devices or interfaces.
+**Preview.** Tested offline, and on an MPC Key 61 (Gen1, MPC OS 3.10.1) with a Quad Cortex mini (2026-11-22): installed as an
+addin, MPC accepts the interface in Preferences (`Audio 44100Hz; 8-in; 8-out; 128sample buffer`), plays through it and shows its
+inputs on its meters. Not yet tried on other devices or interfaces, and no latency measurement yet.
 
 ## How it works
 
@@ -30,8 +30,20 @@ device. Every other open is passed on with `dlsym(RTLD_NEXT)`, so it works along
 interface's native 48 kHz, a listener couldn't tell them apart on an amp-modelled guitar. Measured, it adds faint noise above
 10 kHz (about 65-75 dB below the signal). A better converter is a possible later version.
 
-**Latency:** the converted device's buffers come out at 771 (playback) and 768 (capture) frames at 44.1 kHz, about 4 ms more in
-each direction than the Key 61's own audio.
+**Latency:** MPC picked a 128-sample buffer for the Quad Cortex mini; through the converter the device runs 140-frame periods
+at 48 kHz (buffers of 421 and 420 frames, about 9 ms each way). Round-trip latency has not been measured yet.
+
+## Setting up a Quad Cortex mini
+
+Found on a Key 61 (MPC OS 3.10.1), 2026-11-22:
+
+1. Install the addin, connect the Quad Cortex mini to a USB-A port, and pick it in MPC's **Preferences > Audio**. MPC then reports
+   8 inputs and 8 outputs.
+2. On the Quad Cortex, set its USB audio to **Multi Out**.
+3. In MPC, send the audio you want to hear to **outputs 3/4** (the main output or the track outputs). With the QC set as above,
+   that's what reaches its outputs and headphones.
+4. The QC's processed signal arrives on MPC **inputs 1/2** (set the QC to send its output to USB 1/2), and its dry input on input 3.
+   Record it on an audio track with input 1/2.
 
 ## Things to know
 
