@@ -16,7 +16,7 @@ to alsa-lib untouched.
 
 **Preview.** Tested offline, and on an MPC Key 61 (Gen1, MPC OS 3.10.1) with a Quad Cortex mini (2026-11-22): installed as an
 addin, MPC accepts the interface in Preferences (`Audio 44100Hz; 8-in; 8-out; 128sample buffer`), plays through it, and a guitar take
-recorded on an audio track (input 1/2) played back cleanly, with no audio errors in MPC's log. Not yet tried on other devices or interfaces, and no latency measurement yet.
+recorded on an audio track (input 1/2) played back cleanly, with no audio errors in MPC's log. Round-trip latency measured (below). Not yet tried on other devices or interfaces.
 
 ## How it works
 
@@ -30,8 +30,11 @@ device. Every other open is passed on with `dlsym(RTLD_NEXT)`, so it works along
 interface's native 48 kHz, a listener couldn't tell them apart on an amp-modelled guitar. Measured, it adds faint noise above
 10 kHz (about 65-75 dB below the signal). A better converter is a possible later version.
 
-**Latency:** MPC picked a 128-sample buffer for the Quad Cortex mini; through the converter the device runs 140-frame periods
-at 48 kHz (buffers of 421 and 420 frames, about 9 ms each way). Round-trip latency has not been measured yet.
+**Latency** (Key 61 + Quad Cortex mini, measured 2026-11-22 with a cable loop from a QC output into QC input 2, recording the dry
+input): MPC picked a 128-sample buffer, which the converter runs as 140-frame periods at 48 kHz. The full round trip is **736 samples
+(16.7 ms)**. MPC already compensates 672 samples (15.2 ms) when it places a take, so recordings land **1.45 ms late**, identically on
+every click (jitter about 0.01 ms, no drift over 4 bars). Set MPC's record offset to 64 samples earlier if you want it exact. The
+QC's own processing (amp models) adds its latency on top when you record its processed output; that part wasn't measured.
 
 ## Setting up a Quad Cortex mini
 
