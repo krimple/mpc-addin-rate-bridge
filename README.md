@@ -57,13 +57,15 @@ Found on a Key 61 (MPC OS 3.10.1), 2026-11-22:
 - **The MPC's main volume knob does nothing while the interface is selected** (Key 61, seen 2026-11-22). The knob controls the
   MPC's own audio hardware, which MPC no longer uses, and MPC deliberately ignores an external device's volume controls (it logs
   `Ignoring non-boolean control PCM Playback Volume`). Set the listening level on the interface; MPC's master fader still works.
-- **MPC remembers the audio device you pick.** While the addin is installed, that's fine. If you uninstall it (or set
-  `enabled=0`) with the 48 kHz interface still selected, MPC shows its original sample-rate error at startup and falls back to its own
-  audio. Switch back to the MPC's own device in **Preferences > Audio** first, or just close the error and pick it there afterwards.
-- **Two error dialogs at startup with some USB interfaces connected.** On a Key 61 (MPC OS 3.10.1), with the Quad Cortex mini plugged
-  in, MPC shows two errors every time it starts. MPC opens its own audio device, then about a second later tries to open it again
-  while still holding it, and gets "device busy" twice (`Failed to open ALSA device for capture hw:1`). Close them and carry on; the
-  audio already running is unaffected. This happens without the addin too, and the addin doesn't fix it (yet).
+- **Re-select the interface after every MPC start.** MPC doesn't keep it: on a Key 61 (3.10.1) it came back on its own audio after
+  each restart, and `MPC.settings` holds an empty `audioSetup` (`audioOutputDeviceName=""`), which means the built-in device. So after a
+  restart or power cycle, pick the interface again in **Preferences > Audio**. (It also means uninstalling the addin never leaves
+  MPC stuck on a device it can't open.)
+- **Two "AUDIO DEVICE ERROR: Failed to open Capture Stream" dialogs at startup** with the Quad Cortex mini connected (Key 61, 3.10.1).
+  MPC opens its own audio device, then about a second later tries to open the same device again while still holding it, and gets
+  "device busy" twice (`Failed to open ALSA device for capture hw:1`). Close them and carry on: the audio already running is
+  unaffected. The failing opens are of the MPC's own device, which the addin passes through untouched, and they happened with and
+  without other addins loaded (not yet checked with this one disabled).
 - **Other audio addins.** The addin only changes which device MPC's open returns, and passes every call on, so addins that hook the
   same calls keep working. Addins that watch MPC's main audio stream (for example `mpc-addin-usb-audio`, which forwards it to a
   computer over USB) will see the interface's stream once it is MPC's audio device, instead of the MPC's own.
