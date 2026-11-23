@@ -62,11 +62,12 @@ Found on a Key 61 (MPC OS 3.10.1), 2026-11-22:
   interface, so a clean shutdown doesn't help: MPC doesn't save an external audio device on this firmware. So after a
   restart or power cycle, pick the interface again in **Preferences > Audio**. (It also means uninstalling the addin never leaves
   MPC stuck on a device it can't open.)
-- **Two "AUDIO DEVICE ERROR: Failed to open Capture Stream" dialogs at startup** with the Quad Cortex mini connected (Key 61, 3.10.1).
-  MPC opens its own audio device, then about a second later tries to open the same device again while still holding it, and gets
-  "device busy" twice (`Failed to open ALSA device for capture hw:1`). Close them and carry on: the audio already running is
-  unaffected. The failing opens are of the MPC's own device, which the addin passes through untouched, and they happened with and
-  without other addins loaded (not yet checked with this one disabled).
+- **Two "AUDIO DEVICE ERROR: Failed to open Capture Stream" dialogs at every MPC start** (Key 61, 3.10.1.12). This is MPC's own
+  bug and happens without the addin and without the interface connected: at startup MPC applies its saved audio setup by opening the
+  device again before closing the one it already opened, and the second open fails as "device busy". Close them and carry on.
+- **Don't save the interface as MPC's audio device by editing `MPC.settings`.** MPC would then open it at startup while its internal
+  device is still running, and crash (`terminate called without an active exception`), again at every restart until the setting is
+  changed back. Picking it in Preferences after startup is the safe way.
 - **Other audio addins.** The addin only changes which device MPC's open returns, and passes every call on, so addins that hook the
   same calls keep working. Addins that watch MPC's main audio stream (for example `mpc-addin-usb-audio`, which forwards it to a
   computer over USB) will see the interface's stream once it is MPC's audio device, instead of the MPC's own.
