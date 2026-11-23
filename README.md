@@ -86,6 +86,7 @@ Found on a Key 61 (MPC OS 3.10.1), 2026-11-22:
 - `tools/test_host.sh`: offline tests in a Linux container (Docker). Unit tests for the parsers, then the addin preloaded into a
   driver that opens PCMs the way MPC does, against a stand-in `/proc/asound` holding the Quad Cortex mini's real `stream0`.
 - `MPC_VST=<mpc-vst-plugins checkout> tools/build_armhf.sh`: the Gen1 build in `build/package/`, with the shared addin installer.
+  `tools/build_aarch64.sh` (same `MPC_VST`): the Gen2 build in `build/aarch64/`. **The Gen2 build is not yet tested on a Gen2 device.**
 - `tests/device_check.c`: run MPC's opening sequence against a device on the MPC itself, with the addin preloaded
   (`LD_PRELOAD=.../librate_bridge.so RATE_BRIDGE_DIR=/tmp ./device_check hw:2`), without installing anything.
 
