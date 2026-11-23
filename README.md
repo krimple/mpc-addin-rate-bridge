@@ -54,9 +54,8 @@ Found on a Key 61 (MPC OS 3.10.1), 2026-11-22:
   mix, plugins, pads) goes out through the interface, and the MPC's own outputs and headphone jack go silent. Listen on the
   interface's outputs or headphones, and make sure it sends its USB playback channels (USB 1/2 carries MPC's main mix) to them. To
   keep listening on the MPC while recording the interface, use a plugin that captures it instead (e.g. MPC USB Bridge).
-- **The MPC's main volume knob does nothing while the interface is selected** (Key 61, seen 2026-11-22). The knob controls the
-  MPC's own audio hardware, which MPC no longer uses, and MPC deliberately ignores an external device's volume controls (it logs
-  `Ignoring non-boolean control PCM Playback Volume`). Set the listening level on the interface; MPC's master fader still works.
+- **The MPC's main volume knob works** with the interface selected (Key 61, confirmed 2026-11-23). An earlier report that it did
+  nothing was made before the interface's outputs were set up (Multi Out, MPC outputs 3/4).
 - **Re-select the interface after every MPC start.** MPC doesn't keep it: on a Key 61 (3.10.1) it came back on its own audio after
   each restart, and `MPC.settings` holds an empty `audioSetup` (`audioOutputDeviceName=""`), which means the built-in device. MPC
   rewrites that file while it runs (for example when you leave Preferences), and it wrote the empty value even while running on the
