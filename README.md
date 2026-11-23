@@ -58,7 +58,9 @@ Found on a Key 61 (MPC OS 3.10.1), 2026-11-22:
   MPC's own audio hardware, which MPC no longer uses, and MPC deliberately ignores an external device's volume controls (it logs
   `Ignoring non-boolean control PCM Playback Volume`). Set the listening level on the interface; MPC's master fader still works.
 - **Re-select the interface after every MPC start.** MPC doesn't keep it: on a Key 61 (3.10.1) it came back on its own audio after
-  each restart, and `MPC.settings` holds an empty `audioSetup` (`audioOutputDeviceName=""`), which means the built-in device. So after a
+  each restart, and `MPC.settings` holds an empty `audioSetup` (`audioOutputDeviceName=""`), which means the built-in device. MPC
+  rewrites that file while it runs (for example when you leave Preferences), and it wrote the empty value even while running on the
+  interface, so a clean shutdown doesn't help: MPC doesn't save an external audio device on this firmware. So after a
   restart or power cycle, pick the interface again in **Preferences > Audio**. (It also means uninstalling the addin never leaves
   MPC stuck on a device it can't open.)
 - **Two "AUDIO DEVICE ERROR: Failed to open Capture Stream" dialogs at startup** with the Quad Cortex mini connected (Key 61, 3.10.1).
