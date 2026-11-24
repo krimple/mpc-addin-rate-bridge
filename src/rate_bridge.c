@@ -99,9 +99,12 @@ static void logf_(const char *fmt, ...) {   /* under g_lock */
     if (stat(path, &st) == 0 && st.st_size > 256 * 1024) return;
     FILE *f = fopen(path, "a");
     if (!f) return;
+    /* UTC, labelled: the guard logs before MPC sets its time zone, so local time would differ between lines. UTC also matches
+     * journalctl and date on the device. */
     time_t t = time(NULL);
+    struct tm tm;
     char ts[32];
-    strftime(ts, sizeof ts, "%Y-%m-%d %H:%M:%S", localtime(&t));
+    strftime(ts, sizeof ts, "%Y-%m-%d %H:%M:%S UTC", gmtime_r(&t, &tm));
     fprintf(f, "%s ", ts);
     va_list ap;
     va_start(ap, fmt);

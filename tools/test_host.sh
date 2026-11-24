@@ -56,7 +56,7 @@ grep -q "audioOutputDeviceName=\"\"" $B/MPC.settings && grep -q "audioInputDevic
 [ "$(diff $B/orig.settings $B/MPC.settings | grep -c "^[<>]")" = 4 ] || { echo "FAIL ($T): more than the 2 lines changed"; diff $B/orig.settings $B/MPC.settings; fail=1; }
 cmp -s $B/orig.settings $B/MPC.settings.bak-rate-bridge || { echo "FAIL ($T): backup differs"; fail=1; }
 [ ! -e $B/MPC.settings.new ] || { echo "FAIL ($T): .new left over"; fail=1; }
-logged "guard: .* reset to Internal"
+logged "guard: .* reset to Internal"; logged "^[0-9-]* [0-9:]* UTC guard: "
 T="guard: other process"; mkset "$QC"; cp $B/MPC.settings $B/orig.settings; grun MPC
 cmp -s $B/orig.settings $B/MPC.settings || { echo "FAIL ($T): changed in a non-MPC process"; fail=1; }
 T="guard: 44.1k card kept"; mkset "Some Interface"

@@ -107,7 +107,7 @@ Found on a Key 61 (MPC OS 3.10.1), 2026-11-22:
 |---|---|---|
 | `enabled` | `1` | `0` opens every device as if the addin weren't there |
 | `cards` | empty | Empty: any USB card without 44.1 kHz. Otherwise a list of card ids or numbers (from `/proc/asound/cards`) to bridge |
-| `log` | `1` | One line per bridged or examined device, and per guard reset, in `rate_bridge.log` next to the settings |
+| `log` | `1` | One line per bridged or examined device, and per guard reset, in `rate_bridge.log` next to the settings (times in UTC, as in `journalctl`) |
 | `guard` | `1` | At MPC's start, reset a saved startup audio device that the addin bridges to MPC's own audio (prevents the startup crash loop). `0` leaves `MPC.settings` alone |
 | `settings` | `/data/Settings/MPC/MPC.settings` | The file the guard checks |
 
