@@ -41,6 +41,32 @@ T="log=0";                run x "hw:2" playback "log=0"; expect "rate44100 0"; [
 ./$B/driver "hw:1" playback > $B/plain.txt 2>/dev/null || true
 T="pass-through same as plain"; run x "hw:1" playback; cmp -s $B/plain.txt $B/out.txt || { echo "FAIL ($T)"; diff $B/plain.txt $B/out.txt; fail=1; }
 
+# startup guard: the addin loaded into "MPC" (the driver, via RATE_BRIDGE_EXE) resets a saved bridged device before MPC reads it
+QC="Neural DSP Quad Cortex mini at usb-ff500000.usb-1.1, high speed"
+mkset() { printf "%s\n" "<?xml version=\"1.0\"?>" "<PROPERTIES>" "  <VALUE name=\"audioSetup\">" \
+    "    <DEVICESETUP audioOutputDeviceName=\"$1\"" "                 audioInputDeviceName=\"$1\"/>" "  </VALUE>" \
+    "  <VALUE name=\"midi\" val=\"$QC\"/>" "</PROPERTIES>" > $B/MPC.settings; rm -f $B/MPC.settings.bak-rate-bridge; }
+grun() {   # grun <exe-name> [conf]
+    rm -f $B/rate_bridge.log; printf "settings=$PWD/$B/MPC.settings\n%s\n" "${2:-}" > $B/rate_bridge.conf
+    RATE_BRIDGE_EXE=$1 RATE_BRIDGE_ASOUND=tests/fake_asound RATE_BRIDGE_DIR=$B RATE_BRIDGE_SLAVE=null \
+        LD_PRELOAD=$PWD/$B/librate_bridge.so ./$B/driver "hw:1" playback > /dev/null 2>&1 || true
+}
+T="guard resets QC"; mkset "$QC"; cp $B/MPC.settings $B/orig.settings; grun driver
+grep -q "audioOutputDeviceName=\"\"" $B/MPC.settings && grep -q "audioInputDeviceName=\"\"" $B/MPC.settings || { echo "FAIL ($T): not reset"; cat $B/MPC.settings; fail=1; }
+[ "$(diff $B/orig.settings $B/MPC.settings | grep -c "^[<>]")" = 4 ] || { echo "FAIL ($T): more than the 2 lines changed"; diff $B/orig.settings $B/MPC.settings; fail=1; }
+cmp -s $B/orig.settings $B/MPC.settings.bak-rate-bridge || { echo "FAIL ($T): backup differs"; fail=1; }
+[ ! -e $B/MPC.settings.new ] || { echo "FAIL ($T): .new left over"; fail=1; }
+logged "guard: .* reset to Internal"
+T="guard: other process"; mkset "$QC"; cp $B/MPC.settings $B/orig.settings; grun MPC
+cmp -s $B/orig.settings $B/MPC.settings || { echo "FAIL ($T): changed in a non-MPC process"; fail=1; }
+T="guard: 44.1k card kept"; mkset "Some Interface"
+cp $B/MPC.settings $B/orig.settings; grun driver; cmp -s $B/orig.settings $B/MPC.settings || { echo "FAIL ($T)"; fail=1; }
+T="guard: Internal kept"; mkset ""; cp $B/MPC.settings $B/orig.settings; grun driver; cmp -s $B/orig.settings $B/MPC.settings || { echo "FAIL ($T)"; fail=1; }
+T="guard=0"; mkset "$QC"; cp $B/MPC.settings $B/orig.settings; grun driver "guard=0"; cmp -s $B/orig.settings $B/MPC.settings || { echo "FAIL ($T)"; fail=1; }
+T="guard: enabled=0"; mkset "$QC"; cp $B/MPC.settings $B/orig.settings; grun driver "enabled=0"; cmp -s $B/orig.settings $B/MPC.settings || { echo "FAIL ($T)"; fail=1; }
+T="guard: cards= excludes"; mkset "$QC"; cp $B/MPC.settings $B/orig.settings; grun driver "cards=other"; cmp -s $B/orig.settings $B/MPC.settings || { echo "FAIL ($T)"; fail=1; }
+T="guard: no settings file"; rm -f $B/MPC.settings; grun driver; [ ! -e $B/MPC.settings ] || { echo "FAIL ($T): created a file"; fail=1; }
+
 nm -D --defined-only $B/librate_bridge.so | awk "{print \$3}" | grep -v -x -E "snd_pcm_open|_init|_fini" | grep . && { echo "FAIL: exports more than snd_pcm_open"; fail=1; }
 [ $fail = 0 ] && echo PASSED || { echo FAILED; exit 1; }
 '

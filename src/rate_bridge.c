@@ -42,12 +42,14 @@ typedef struct _snd_config snd_config_t;
 typedef struct _snd_input snd_input_t;
 
 /* ---- settings and log ---- */
+#define DEFAULT_SETTINGS "/data/Settings/MPC/MPC.settings"
 static struct {
-    int enabled, log;
+    int enabled, log, guard;
     char cards[256];
     char dir[512];
+    char settings[512];
     int loaded;
-} g_set = { 1, 1, "", "", 0 };
+} g_set = { 1, 1, 1, "", "", DEFAULT_SETTINGS, 0 };
 static pthread_mutex_t g_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static void addin_dir(char *out, size_t n) {
@@ -83,6 +85,8 @@ static void load_settings(void) {   /* under g_lock */
         if (!strcmp(k, "enabled")) g_set.enabled = atoi(v) != 0;
         else if (!strcmp(k, "log")) g_set.log = atoi(v) != 0;
         else if (!strcmp(k, "cards")) snprintf(g_set.cards, sizeof g_set.cards, "%s", v);
+        else if (!strcmp(k, "guard")) g_set.guard = atoi(v) != 0;
+        else if (!strcmp(k, "settings") && *v) snprintf(g_set.settings, sizeof g_set.settings, "%s", v);
     }
     fclose(f);
 }
@@ -250,6 +254,146 @@ static unsigned decide(const char *name, int stream, int *card, int *dev) {
     if (!best) return 0;
     if (!card_selected(*card, id)) { logf_("pass %s: card %d not in cards=%s", name, *card, g_set.cards); return 0; }
     return best;
+}
+
+/* ---- startup guard: never let MPC start on a bridged device ----
+ * When MPC.settings names a device as MPC's startup audio device, MPC opens it at startup while its internal device is still
+ * open, and aborts (std::terminate), at every start: a crash loop (pads cyan, then black, again). MPC saves that setting by
+ * itself sometimes while it runs on the interface. So before MPC reads its settings (a constructor: the .so is preloaded),
+ * if the saved device is a card this addin would bridge, both DEVICESETUP names are blanked (= Internal). Only in MPC itself
+ * (the launcher script and its helpers preload the .so too), only that element, staged as .new and renamed, with a backup. */
+
+static int xml_unescape_eq(const char *esc, size_t n, const char *plain) {   /* esc[0..n) unescaped == plain */
+    static const struct { const char *e; char c; } ents[] = { {"&amp;", '&'}, {"&quot;", '"'}, {"&apos;", '\''},
+                                                               {"&lt;", '<'}, {"&gt;", '>'} };
+    size_t i = 0;
+    while (i < n) {
+        char c = esc[i];
+        size_t step = 1;
+        if (c == '&')
+            for (size_t k = 0; k < sizeof ents / sizeof ents[0]; k++) {
+                size_t l = strlen(ents[k].e);
+                if (i + l <= n && !strncmp(esc + i, ents[k].e, l)) { c = ents[k].c; step = l; break; }
+            }
+        if (*plain++ != c) return 0;
+        i += step;
+    }
+    return *plain == 0;
+}
+
+/* A saved device name (XML-escaped, n bytes) -> 1 when it is a card this addin bridges: a USB card whose stream0 starts with
+ * "<name> : ", that lacks 44.1 kHz for playback or capture, and that cards= selects. Under g_lock. */
+static int saved_name_bridged(const char *esc, size_t n) {
+    if (!n) return 0;
+    for (int c = 0; c < 32; c++) {
+        char p[300], usbid[32], s0[8192];
+        snprintf(p, sizeof p, "%s/card%d/usbid", asound_root(), c);
+        if (read_small(p, usbid, sizeof usbid) < 0) continue;
+        snprintf(p, sizeof p, "%s/card%d/stream0", asound_root(), c);
+        if (read_small(p, s0, sizeof s0) < 0) continue;
+        char *sep = strstr(s0, " : ");
+        char *nl = strchr(s0, '\n');
+        if (!sep || (nl && nl < sep)) continue;
+        *sep = 0;
+        if (!xml_unescape_eq(esc, n, s0)) continue;
+        *sep = ' ';
+        int h44p, h44c;
+        unsigned b;
+        int lp = rb_stream_rates(s0, 0, &h44p, &b), lc = rb_stream_rates(s0, 1, &h44c, &b);
+        if (!((lp && !h44p) || (lc && !h44c))) return 0;
+        return card_selected(c, NULL);
+    }
+    return 0;
+}
+
+int rb_reset_saved_device(const char *in, char **out, int (*bridged)(const char *, size_t)) {
+    /* Finds <DEVICESETUP ...> in an MPC.settings text. When its audioOutputDeviceName or audioInputDeviceName value is one
+     * bridged() accepts, *out = a malloc'd copy with both values emptied, and returns 1. Else 0 (*out untouched); -1 on OOM. */
+    const char *el = strstr(in, "<DEVICESETUP");
+    if (!el) return 0;
+    const char *el_end = strchr(el, '>');
+    if (!el_end) return 0;
+    static const char *const attrs[2] = { "audioOutputDeviceName=\"", "audioInputDeviceName=\"" };
+    const char *vs[2] = { 0, 0 }, *ve[2] = { 0, 0 };
+    int hit = 0;
+    for (int a = 0; a < 2; a++) {
+        const char *s = strstr(el, attrs[a]);
+        if (!s || s > el_end) continue;
+        vs[a] = s + strlen(attrs[a]);
+        ve[a] = strchr(vs[a], '"');
+        if (!ve[a] || ve[a] > el_end) { vs[a] = ve[a] = 0; continue; }
+        if (bridged(vs[a], (size_t)(ve[a] - vs[a]))) hit = 1;
+    }
+    if (!hit) return 0;
+    size_t len = strlen(in);
+    char *o = malloc(len + 1);
+    if (!o) return -1;
+    char *w = o;
+    const char *r = in;
+    int first = (vs[0] && vs[1] && vs[1] < vs[0]) ? 1 : 0;   /* emit the earlier attribute first */
+    for (int k = 0; k < 2; k++) {
+        int a = k == 0 ? first : !first;
+        if (!vs[a]) continue;
+        memcpy(w, r, (size_t)(vs[a] - r)); w += vs[a] - r;
+        r = ve[a];   /* skip the value, keep the closing quote */
+    }
+    strcpy(w, r);
+    *out = o;
+    return 1;
+}
+
+static int is_mpc_process(void) {
+    const char *want = getenv("RATE_BRIDGE_EXE");   /* test hook: the basename to treat as MPC */
+    if (!want || !*want) want = "MPC";
+    char exe[512];
+    ssize_t n = readlink("/proc/self/exe", exe, sizeof exe - 1);
+    if (n <= 0) return 0;
+    exe[n] = 0;
+    const char *b = strrchr(exe, '/');
+    return !strcmp(b ? b + 1 : exe, want);
+}
+
+__attribute__((constructor)) static void startup_guard(void) {
+    if (!is_mpc_process()) return;
+    pthread_mutex_lock(&g_lock);
+    load_settings();
+    if (!g_set.enabled || !g_set.guard) goto out;
+    const char *path = g_set.settings;
+    FILE *f = fopen(path, "r");
+    if (!f) goto out;
+    struct stat st;
+    if (fstat(fileno(f), &st) || st.st_size <= 0 || st.st_size > 16 * 1024 * 1024) { fclose(f); goto out; }
+    char *text = malloc((size_t)st.st_size + 1);
+    size_t got = text ? fread(text, 1, (size_t)st.st_size, f) : 0;
+    fclose(f);
+    if (!text || got != (size_t)st.st_size) { free(text); goto out; }
+    text[got] = 0;
+    char *fixed = NULL;
+    if (rb_reset_saved_device(text, &fixed, saved_name_bridged) == 1) {
+        char tmp[700], bak[700];
+        snprintf(tmp, sizeof tmp, "%s.new", path);
+        snprintf(bak, sizeof bak, "%s.bak-rate-bridge", path);
+        int ok = 0;
+        FILE *b = fopen(bak, "w");   /* one backup, the copy from before the latest reset */
+        if (b) { ok = fwrite(text, 1, got, b) == got; ok = (fclose(b) == 0) && ok; }
+        int fd = ok ? open(tmp, O_WRONLY | O_CREAT | O_TRUNC, st.st_mode & 07777) : -1;
+        if (fd >= 0) {
+            size_t len = strlen(fixed), off = 0;
+            while (off < len) { ssize_t k = write(fd, fixed + off, len - off); if (k <= 0) break; off += (size_t)k; }
+            ok = off == len && fsync(fd) == 0;
+            ok = (close(fd) == 0) && ok;
+            if (ok) ok = rename(tmp, path) == 0;
+            if (!ok) unlink(tmp);
+        } else ok = 0;
+        logf_(ok ? "guard: %s named a bridged device as MPC's startup audio device (MPC would crash at startup): reset to "
+                   "Internal; pick the interface again in Preferences > Audio (backup: %s)"
+                 : "guard: %s names a bridged device as MPC's startup audio device, but resetting it failed (%s untouched)",
+              path, ok ? bak : path);
+    }
+    free(fixed);
+    free(text);
+out:
+    pthread_mutex_unlock(&g_lock);
 }
 
 /* ---- the hook ---- */

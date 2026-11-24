@@ -8,6 +8,8 @@
 static int fails;
 #define CHECK(c) do { if (!(c)) { printf("FAIL %s:%d: %s\n", __FILE__, __LINE__, #c); fails++; } } while (0)
 
+static int is_qc(const char *v, size_t n) { return n == 3 && !strncmp(v, "QC1", 3); }
+
 static char *slurp(const char *p) {
     FILE *f = fopen(p, "r"); if (!f) { printf("cannot read %s\n", p); exit(1); }
     static char b[8192]; size_t n = fread(b, 1, sizeof b - 1, f); fclose(f); b[n] = 0;
@@ -42,6 +44,25 @@ int main(void) {
     CHECK(rb_stream_rates("Capture:\n    Rates: 32000, 48000\nPlayback:\n    Rates: 44100\n", 1, &has44, &best) == 1 && !has44 && best == 48000);
     CHECK(rb_stream_rates("Capture:\n    Rates: 32000, 48000\nPlayback:\n    Rates: 44100\n", 0, &has44, &best) == 1 && has44);
     CHECK(rb_stream_rates("", 0, &has44, &best) == 0);
+
+    /* rb_reset_saved_device */
+    char *o = NULL;
+    const char *saved = "<A>\n  <VALUE name=\"audioSetup\">\n    <DEVICESETUP audioOutputDeviceName=\"QC1\"\n"
+                        "                 audioInputDeviceName=\"QC1\"/>\n  </VALUE>\n<B x=\"QC1\"/>\n</A>\n";
+    CHECK(rb_reset_saved_device(saved, &o, is_qc) == 1 && o &&
+          !strcmp(o, "<A>\n  <VALUE name=\"audioSetup\">\n    <DEVICESETUP audioOutputDeviceName=\"\"\n"
+                     "                 audioInputDeviceName=\"\"/>\n  </VALUE>\n<B x=\"QC1\"/>\n</A>\n"));
+    free(o); o = NULL;
+    CHECK(rb_reset_saved_device("<DEVICESETUP audioOutputDeviceName=\"Other\" audioInputDeviceName=\"QC1\"/>", &o, is_qc) == 1 && o &&
+          !strcmp(o, "<DEVICESETUP audioOutputDeviceName=\"\" audioInputDeviceName=\"\"/>"));
+    free(o); o = NULL;
+    CHECK(rb_reset_saved_device("<DEVICESETUP audioInputDeviceName=\"QC1\" audioOutputDeviceName=\"X\"/>", &o, is_qc) == 1 && o &&
+          !strcmp(o, "<DEVICESETUP audioInputDeviceName=\"\" audioOutputDeviceName=\"\"/>"));   /* reverse order */
+    free(o); o = NULL;
+    CHECK(rb_reset_saved_device("<DEVICESETUP audioOutputDeviceName=\"Other\" audioInputDeviceName=\"Other\"/>", &o, is_qc) == 0 && !o);
+    CHECK(rb_reset_saved_device("<DEVICESETUP audioOutputDeviceName=\"\" audioInputDeviceName=\"\"/>", &o, is_qc) == 0 && !o);
+    CHECK(rb_reset_saved_device("<DEVICESETUP/><X audioOutputDeviceName=\"QC1\"/>", &o, is_qc) == 0 && !o);   /* outside the element */
+    CHECK(rb_reset_saved_device("no element here", &o, is_qc) == 0 && !o);
 
     free(qc); free(both); free(cont);
     printf(fails ? "unit: %d FAILED\n" : "unit: all passed\n", fails);
