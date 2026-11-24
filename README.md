@@ -32,7 +32,8 @@ to alsa-lib untouched.
 > sed -E 's/audio(Output|Input)DeviceName="[^"]*"/audio\1DeviceName=""/' MPC.settings > MPC.settings.new && mv MPC.settings.new MPC.settings
 > systemctl start acvs
 > ```
-> Then install 0.2.0. (`systemctl stop acvs` stops the loop. The `sed` changes only the two device-name lines; check them with
+> Then install 0.2.0. If you use Claude Code, `/reset-akai-audio-device` in a checkout of this repo does the same steps over
+> SSH, with a check first and a backup (`.claude/skills/reset-akai-audio-device/`). (`systemctl stop acvs` stops the loop. The `sed` changes only the two device-name lines; check them with
 > `diff MPC.settings.bak MPC.settings` before starting MPC again.)
 
 ## Status
